@@ -8,7 +8,7 @@ This framework implements various federated learning algorithms for linear regre
 
 ## Key Features
 
-- **Multiple FL Algorithms**: Stochastic SGD, FedAvg, FedProx, and FedNova
+- **Multiple FL Algorithms**: Stochastic Approximation, FedAvg, FedProx, and FedNova
 - **Synthetic Datasets**: Configurable linear regression datasets with controlled heterogeneity
 - **Data Heterogeneity Studies**: Combined heterogeneity, feature variance, parameter variance, and target variance scenarios
 - **Ablation Studies**: Single-dominant, no-dominant, and dual-dominant client scenarios
@@ -28,9 +28,6 @@ regression/
 ├── plot_no_dominant.py              # No dominant plotting utilities
 ├── plot_dual_dominant.py            # Dual dominant plotting utilities
 ├── pyproject.toml                   # Project dependencies
-├── HETERO_FINAL/                    # Final heterogeneity study results
-├── RESULTS/                         # Experiment results storage
-└── heterogeneity_study_*/           # Individual heterogeneity study outputs
 ```
 
 ## Installation
@@ -93,16 +90,16 @@ python baselines_comparison_study.py \
 
 ## Supported Algorithms
 
-### 1. Stochastic SGD
+### 1. Stochastic Approximation
 Proposed stochastic federated learning with adaptive learning rate tapering and heterogeneous client participation.
 
-### 2. FedAvg (Federated Averaging)
+### 2. FedAvg 
 Standard federated averaging algorithm with weighted parameter aggregation across clients.
 
-### 3. FedProx (Federated Proximal)
+### 3. FedProx 
 Adds a proximal term to handle system heterogeneity and non-IID data, controlled by the μ parameter.
 
-### 4. FedNova (Federated Nova)
+### 4. FedNova 
 Addresses objective inconsistency in federated optimization through normalized averaging and local step compensation.
 
 ## Dataset Format
@@ -220,16 +217,3 @@ Each experiment automatically saves:
 - **Learning rate tapering**: Exponent 0.76 (configurable)
 - **FedProx μ**: 0.1
 
-## Advanced Usage
-
-### Custom Dataset Integration
-To use your own dataset, ensure it follows the expected JSON format and update the file path in the experiment scripts.
-
-### Parameter Tuning
-Key parameters can be modified in the script headers:
-- `LOCAL_STEPS_VALUES`: Local step sizes to test
-- `TAPERING_EXPONENTS`: Learning rate tapering exponents
-- `HETEROGENEITY_DATASETS`: Dataset configurations for ablation studies
-
-### Extending Algorithms
-New algorithms can be added by implementing the federated learning logic in the main experiment scripts, following the existing pattern for parameter updates and aggregation.
