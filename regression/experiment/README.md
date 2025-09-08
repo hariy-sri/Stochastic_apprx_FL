@@ -1,116 +1,235 @@
-### Federated Linear Regression Experiments
+# Federated Learning Regression Experiments
 
-This folder contains scripts to run and visualize baseline federated learning (FL) experiments for linear regression on synthetic multi‑client datasets.
+This folder contains scripts to run and visualize federated learning (FL) experiments for linear regression tasks on synthetic multi-client datasets.
 
-### Contents
-- `baselines_comparison_study.py`: Runs Stochastic SGD, FedAvg, FedProx, and FedNova across multiple local step sizes and saves results.
-- `plot_baseline_results.py`: Loads saved results and generates publication‑ready plots and summaries.
-- `utils.py`: Common math utilities (SGD update, losses, gradients).
- - Ablation runners and plotters:
-   - `ablation_study_single_dominant.py`, `plot_single_dominant.py`
-   - `ablation_study_no_dominant.py`, `plot_no_dominant.py`
-   - `ablation_study_dual_dominant.py`, `plot_dual_dominant.py`
+## Overview
+
+This framework implements various federated learning algorithms for linear regression tasks, with support for different data heterogeneity scenarios, learning rate schedules, and experimental setups. The experiments focus on understanding the behavior of federated learning in regression settings with varying levels of data heterogeneity and client participation patterns.
+
+## Key Features
+
+- **Multiple FL Algorithms**: Stochastic SGD, FedAvg, FedProx, and FedNova
+- **Synthetic Datasets**: Configurable linear regression datasets with controlled heterogeneity
+- **Data Heterogeneity Studies**: Combined heterogeneity, feature variance, parameter variance, and target variance scenarios
+- **Ablation Studies**: Single-dominant, no-dominant, and dual-dominant client scenarios
+- **Learning Rate Tapering**: Configurable learning rate schedules with tapering support
+
+## Project Structure
+
+```
+regression/
+├── baselines_comparison_study.py     # Main baseline comparison experiments
+├── utils.py                         # Mathematical utilities (SGD, gradients, losses)
+├── ablation_study_single_dominant.py # Single dominant client ablation studies
+├── ablation_study_no_dominant.py    # No dominant client ablation studies  
+├── ablation_study_dual_dominant.py  # Dual dominant client ablation studies
+├── plot_baselines.py                # Baseline results plotting
+├── plot_single_dominant.py          # Single dominant plotting utilities
+├── plot_no_dominant.py              # No dominant plotting utilities
+├── plot_dual_dominant.py            # Dual dominant plotting utilities
+├── pyproject.toml                   # Project dependencies
+├── HETERO_FINAL/                    # Final heterogeneity study results
+├── RESULTS/                         # Experiment results storage
+└── heterogeneity_study_*/           # Individual heterogeneity study outputs
+```
+
+## Installation
 
 ### Prerequisites
-- Python 3.12+
-- Python packages as mentioned in the Root Readme
-- A dataset JSON in the structure produced by `data_generation` (see `../data_generation/Readme.md`).
+- Python >= 3.12
+- NumPy >= 1.24.0
+- Pandas >= 2.3.1
+- Seaborn >= 0.13.2
+- Joblib >= 1.5.1
 
-### Expected Dataset Format
-The runner expects a JSON with:
-- Top‑level `clients_data` mapping client ids to `{"theta", "X", "Y", "length"}`
-- Optional `metadata.reference_theta` (used for parameter‑error plots/summaries)
+### Setup
+1. Clone or navigate to the project directory
+2. Install dependencies using uv (recommended) or pip:
 
-Example location (from this repo):
-- `data_generation/federated_datasets_combined_hetero/normal_theta_5_xvar_5.json`
+```bash
+# Using uv (recommended)
+uv sync
 
-### Run: Baseline Comparison
-Runs all methods for each configured local step size, then saves per‑step and combined results.
+# Or using pip
+pip install numpy>=1.24.0 pandas>=2.3.1 seaborn>=0.13.2 joblib>=1.5.1
+```
 
-Example:
+## Usage
+
+### Basic Baseline Comparison
+
+Run a comprehensive comparison of federated learning algorithms:
+
 ```bash
 python baselines_comparison_study.py \
   --json_file ../data_generation/federated_datasets_combined_hetero/normal_theta_5_xvar_5.json \
-  --save_dir  baselines_results \
+  --save_dir baselines_results \
   --rounds 2000
 ```
 
-Flags:
-- `--json_file`: Path to dataset JSON
-- `--save_dir`: Output directory for results
-- `--rounds`: Number of FL rounds (overrides script default)
-- `--no_tapering`: Disable learning‑rate tapering
+### Advanced Configuration
 
-What gets saved (per `--save_dir`):
-- `results_local_steps_{N}.pkl` for each N in the configured step sizes
-- `complete_results.pkl` containing all step sizes and methods
-- `results_summary.txt` with a human‑readable summary
-
-Per‑method result dict includes:
-- `global_theta_trajectory`: list of global parameter vectors per round
-- `individual_gradient_trajectories`: dict[client_id] -> list of gradients per round
-- `summed_gradient_trajectory`: list of sum of all client gradients per round
-- `global_loss_trajectory`: list of global MSE per round
-- `local_gradient_trajectories`, `local_thetas_trajectories`, `client_loss_trajectories`
-- `parameter_error_trajectory` (present if `reference_theta` provided)
-- `true_theta` (echo of `reference_theta` if provided)
-
-### Run: Plotting
-Generates per‑step plots and cross‑step comparison plots from `complete_results.pkl`.
-
-Example:
 ```bash
-python plot_baseline_results.py \
+python baselines_comparison_study.py \
+  --json_file ../data_generation/federated_datasets_combined_hetero/normal_theta_10_xvar_10.json \
+  --save_dir advanced_results \
+  --rounds 5000 \
+  --no_tapering
+```
+
+### Command Line Arguments
+
+#### Core Parameters
+- `--json_file`: Path to dataset JSON file (required)
+- `--save_dir`: Output directory for results (default: "results")
+- `--rounds`: Number of federated learning rounds (default: 1000)
+- `--no_tapering`: Disable learning rate tapering (default: tapering enabled)
+
+#### Algorithm Configuration
+- **Stochastic SGD**: Base learning rate 1.0 with tapering (exponent 0.76)
+- **FedAvg**: Base learning rate 0.01 without tapering
+- **FedProx**: Base learning rate 0.01 with proximal term (μ=0.1)
+- **FedNova**: Base learning rate 0.01 with normalized averaging
+
+## Supported Algorithms
+
+### 1. Stochastic SGD
+Proposed stochastic federated learning with adaptive learning rate tapering and heterogeneous client participation.
+
+### 2. FedAvg (Federated Averaging)
+Standard federated averaging algorithm with weighted parameter aggregation across clients.
+
+### 3. FedProx (Federated Proximal)
+Adds a proximal term to handle system heterogeneity and non-IID data, controlled by the μ parameter.
+
+### 4. FedNova (Federated Nova)
+Addresses objective inconsistency in federated optimization through normalized averaging and local step compensation.
+
+## Dataset Format
+
+### Expected JSON Structure
+The framework expects JSON files with the following structure:
+
+```json
+{
+  "clients_data": {
+    "client_0": {
+      "theta": [1.0, 2.0, 3.0],
+      "X": [[1.0, 2.0, 3.0], ...],
+      "Y": [10.0, 15.0, ...],
+      "length": 100
+    },
+    "client_1": { ... }
+  },
+  "metadata": {
+    "reference_theta": [1.0, 2.0, 3.0]
+  }
+}
+```
+
+### Dataset Generation
+Datasets are generated using the `../data_generation/` module with configurable:
+- **Parameter heterogeneity**: Varying true parameters across clients
+- **Feature variance**: Different input feature distributions
+- **Target variance**: Varying noise levels in target variables
+- **Combined heterogeneity**: Multiple sources of heterogeneity
+
+## Experiment Types
+
+### 1. Baseline Comparison (`baselines_comparison_study.py`)
+Comprehensive comparison of all algorithms across multiple local step sizes (2, 5, 10). Generates:
+- Per-algorithm performance trajectories
+- Cross-algorithm comparison plots
+- Parameter error analysis (when reference parameters available)
+- Gradient norm and convergence analysis
+
+### 2. Ablation Studies
+
+#### Single Dominant Client (`ablation_study_single_dominant.py`)
+Studies scenarios where one client has significantly different data characteristics:
+- **Heterogeneity Study**: Progressive increase in data heterogeneity
+- **Tapering Study**: Effect of learning rate tapering exponents
+
+#### No Dominant Client (`ablation_study_no_dominant.py`)
+Balanced scenarios with no single dominant client:
+- **Heterogeneity Study**: Uniform heterogeneity across clients
+- **Tapering Study**: Tapering effects in balanced settings
+
+#### Dual Dominant Client (`ablation_study_dual_dominant.py`)
+Two-client scenarios with competing dominant patterns:
+- **Heterogeneity Study**: Dual-source heterogeneity effects
+- **Tapering Study**: Tapering in multi-dominant scenarios
+
+## Visualization and Analysis
+
+### Plotting Scripts
+
+#### 1. Baseline Results (`plot_baselines.py`)
+```bash
+python plot_baselines.py \
   --pickle_file baselines_results/complete_results.pkl \
-  --save_dir  plotting_output
+  --save_dir plotting_output
 ```
 
-### Run: Single‑Dominant Ablation
+#### 2. Ablation Study Plotting
 ```bash
-python ablation_study_single_dominant.py
-# Non‑interactive default runs both studies (heterogeneity + tapering)
-```
-Outputs:
-- Heterogeneity study: `heterogeneity_study_single_dominant/{combined_hetero|feature_variance|param_variance|target_variance}/progressive_results.pkl` and `single_heterogeneous_results.pkl`
-- Tapering study: `tapering_study_single_dominant/tapering_results.pkl`
-
-### Plot: Single‑Dominant
-```bash
+# Single dominant
 python plot_single_dominant.py \
   heterogeneity_study_single_dominant/combined_hetero \
-  --output-dir plots_single_dominant \
-```
+  --output-dir plots_single_dominant
 
-### Run: No‑Dominant Ablation
-```bash
-python ablation_study_no_dominant.py
-```
-Outputs:
-- Heterogeneity study: `heterogeneity_study_no_dominant/{...}/progressive_results.pkl` and `single_heterogeneous_results.pkl`
-- Tapering study: `tapering_study_no_dominant/tapering_results_no_dominant.pkl`
-
-### Plot: No‑Dominant
-```bash
+# No dominant  
 python plot_no_dominant.py \
   heterogeneity_study_no_dominant/combined_hetero \
-  --output-dir plots_no_dominant \
-```
+  --output-dir plots_no_dominant
 
-### Run: Dual‑Dominant Ablation
-```bash
-python ablation_study_dual_dominant.py
-```
-Outputs:
-- Heterogeneity study: `heterogeneity_study_dual_dominant/{...}/progressive_results.pkl` and `single_heterogeneous_results.pkl`
-- Tapering study: `tapering_study_dual_dominant/tapering_results_dual_dominant.pkl`
-
-### Plot: Dual‑Dominant
-```bash
+# Dual dominant
 python plot_dual_dominant.py \
   heterogeneity_study_dual_dominant/combined_hetero \
-  --output-dir plots_dual_dominant \
+  --output-dir plots_dual_dominant
 ```
 
-Notes on ablation outputs
-- Each pickle key is a parameter value (dataset name or exponent), mapping to N→result‑dict.
-- Result dicts include trajectories for `global_theta`, parameter error, per‑client gradients/ norms, and final metrics; exact keys differ slightly by study (e.g., `sum_gradients_*` for no‑dominant, `combined_gradient_*` for dual‑dominant).
+### Output Metrics
+
+Each experiment generates comprehensive metrics:
+- **Global parameter trajectories**: Evolution of global model parameters
+- **Parameter error trajectories**: Distance from true parameters (when available)
+- **Loss trajectories**: Global and per-client loss evolution
+- **Gradient trajectories**: Gradient norms and directions
+- **Convergence analysis**: Final performance and convergence rates
+
+## Configuration and Reproducibility
+
+### Experiment Configuration
+Each experiment automatically saves:
+- Complete parameter configuration and results (`*.pkl` files)
+- Human-readable summaries (`results_summary.txt`)
+- Per-round trajectories for all metrics
+- Client-specific statistics and data distributions
+
+### Reproducibility
+- Fixed random seeds (42) for deterministic results
+- Complete parameter logging and configuration tracking
+- Consistent batch sampling across experiments
+
+### Key Parameters
+- **Number of clients**: 10 (configurable)
+- **Local steps**: [2, 5, 10] for baseline comparison
+- **Batch size**: 50
+- **Initial parameter distribution**: Normal(0, 20²)
+- **Learning rate tapering**: Exponent 0.76 (configurable)
+- **FedProx μ**: 0.1
+
+## Advanced Usage
+
+### Custom Dataset Integration
+To use your own dataset, ensure it follows the expected JSON format and update the file path in the experiment scripts.
+
+### Parameter Tuning
+Key parameters can be modified in the script headers:
+- `LOCAL_STEPS_VALUES`: Local step sizes to test
+- `TAPERING_EXPONENTS`: Learning rate tapering exponents
+- `HETEROGENEITY_DATASETS`: Dataset configurations for ablation studies
+
+### Extending Algorithms
+New algorithms can be added by implementing the federated learning logic in the main experiment scripts, following the existing pattern for parameter updates and aggregation.
