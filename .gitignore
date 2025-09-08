@@ -1,14 +1,36 @@
-*.venv
+# Virtual environments
+*.venv/
+*/.venv/
+**/.venv/
+# Python cache and compiled files
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS system files
+.DS_Store
+*/.DS_Store
+**/.DS_Store
+
+# Additional Python/IDE files (recommended)
+*.egg-info/
+.pytest_cache/
+.coverage
+.env
+
+# data and results directories
 classification/data
 classification/results
-__pycache__
-*.pyc
-.DS_Store
+
 regression/data_generation/federated_datasets_combined_hetero
 regression/data_generation/federated_datasets_constant_snr
 regression/data_generation/federated_datasets_feature_variance
 regression/data_generation/federated_datasets_param_variance
 regression/data_generation/parameter_heterogeneity
+regression/data_generation/feature_heterogeneity
 regression/data_generation/target_heterogeneity
 regression/experiment/backup_code
 regression/experiment/HETERO_FINAL

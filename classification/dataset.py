@@ -298,6 +298,90 @@ def create_single_rare_partition(dataset, num_clients: int, seed: int = 42):
     return client_indices
 
 
+def create_dirichlet_partition(dataset, num_clients: int, alpha: float = 0.1, seed: int = 42):
+    """
+    Create Dirichlet partition for non-IID federated learning.
+    
+    Args:
+        dataset: The dataset to partition
+        num_clients: Number of clients
+        alpha: Dirichlet concentration parameter. Lower values create more heterogeneous distributions.
+               - alpha < 1.0: Highly heterogeneous (each client has few classes)
+               - alpha = 1.0: Moderately heterogeneous
+               - alpha > 1.0: More homogeneous (approaching IID as alpha increases)
+        seed: Random seed for reproducibility
+    
+    Returns:
+        List of client indices for each client
+    """
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
+    # Extract labels from dataset
+    labels = np.array([dataset[i][1] for i in range(len(dataset))])
+    labels = np.array([int(label.item()) if hasattr(label, 'item') else int(label) for label in labels])
+    
+    num_classes = len(np.unique(labels))
+    total_samples = len(labels)
+    
+    # Create class-to-indices mapping
+    class_to_indices = {cls: [] for cls in range(num_classes)}
+    for idx, label in enumerate(labels):
+        class_to_indices[label].append(idx)
+    
+    # Shuffle indices within each class
+    for cls in range(num_classes):
+        np.random.shuffle(class_to_indices[cls])
+    
+    # Generate Dirichlet distribution for each client
+    client_indices = [[] for _ in range(num_clients)]
+    
+    # For each class, distribute samples according to Dirichlet distribution
+    for cls in range(num_classes):
+        class_indices = class_to_indices[cls]
+        class_size = len(class_indices)
+        
+        if class_size == 0:
+            continue
+        
+        # Sample from Dirichlet distribution to get proportions for each client
+        proportions = np.random.dirichlet(alpha * np.ones(num_clients))
+        
+        # Convert proportions to actual sample counts
+        sample_counts = np.round(proportions * class_size).astype(int)
+        
+        # Adjust for rounding errors to ensure all samples are distributed
+        diff = class_size - np.sum(sample_counts)
+        if diff > 0:
+            # Add remaining samples to random clients
+            for _ in range(diff):
+                client_idx = np.random.randint(num_clients)
+                sample_counts[client_idx] += 1
+        elif diff < 0:
+            # Remove excess samples from random clients
+            for _ in range(-diff):
+                # Find clients with at least one sample to remove from
+                valid_clients = np.where(sample_counts > 0)[0]
+                if len(valid_clients) > 0:
+                    client_idx = np.random.choice(valid_clients)
+                    sample_counts[client_idx] -= 1
+        
+        # Distribute samples to clients
+        start_idx = 0
+        for client_id in range(num_clients):
+            num_samples = sample_counts[client_id]
+            if num_samples > 0:
+                end_idx = start_idx + num_samples
+                client_indices[client_id].extend(class_indices[start_idx:end_idx])
+                start_idx = end_idx
+    
+    # Shuffle indices for each client to avoid any ordering bias
+    for client_id in range(num_clients):
+        np.random.shuffle(client_indices[client_id])
+    
+    return client_indices
+
+
 def create_federated_datasets(
     dataset_name: str,
     num_clients: int,
@@ -328,6 +412,8 @@ def create_federated_datasets(
         client_train_indices = create_near_pathological_partition(train_dataset, num_clients)
     elif partition_type == "single_rare":
         client_train_indices = create_single_rare_partition(train_dataset, num_clients)
+    elif partition_type == "dirichlet":
+        client_train_indices = create_dirichlet_partition(train_dataset, num_clients, alpha)
     else:
         raise ValueError(f"Unknown partition type: {partition_type}")
     
@@ -339,6 +425,8 @@ def create_federated_datasets(
             client_val_indices = create_near_pathological_partition(val_dataset, num_clients)
         elif partition_type == "single_rare":
             client_val_indices = create_single_rare_partition(val_dataset, num_clients)
+        elif partition_type == "dirichlet":
+            client_val_indices = create_dirichlet_partition(val_dataset, num_clients, alpha)
     else:
         client_val_indices = None
     
@@ -467,7 +555,7 @@ if __name__ == "__main__":
     if MEDMNIST_AVAILABLE:
         datasets_to_test.extend(['bloodmnist', 'organsmnist'])
     
-    partition_types = ['iid', 'near_pathological', 'single_rare']
+    partition_types = ['iid', 'near_pathological', 'single_rare', 'dirichlet']
     
     for dataset_name in datasets_to_test:
         print(f"\nTesting {dataset_name.upper()}...")
@@ -477,14 +565,26 @@ if __name__ == "__main__":
             print(f"Classes: {info['num_classes']}, Channels: {info['input_channels']}")
             
             for partition_type in partition_types:
-                train_loaders, val_loaders, test_loader = create_federated_datasets(
-                    dataset_name=dataset_name,
-                    num_clients=5,
-                    partition_type=partition_type,
-                    batch_size=32
-                )
-                
-                print(f"  {partition_type}: {len(train_loaders)} clients created")
+                # Use different alpha values for dirichlet partitioning
+                if partition_type == "dirichlet":
+                    alpha_values = [0.1, 0.5, 1.0]
+                    for alpha in alpha_values:
+                        train_loaders, val_loaders, test_loader = create_federated_datasets(
+                            dataset_name=dataset_name,
+                            num_clients=5,
+                            partition_type=partition_type,
+                            alpha=alpha,
+                            batch_size=32
+                        )
+                        print(f"  {partition_type} (α={alpha}): {len(train_loaders)} clients created")
+                else:
+                    train_loaders, val_loaders, test_loader = create_federated_datasets(
+                        dataset_name=dataset_name,
+                        num_clients=5,
+                        partition_type=partition_type,
+                        batch_size=32
+                    )
+                    print(f"  {partition_type}: {len(train_loaders)} clients created")
                 
         except Exception as e:
             print(f"Error with {dataset_name}: {e}")

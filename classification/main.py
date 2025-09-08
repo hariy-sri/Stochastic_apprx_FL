@@ -281,17 +281,17 @@ def main():
                         help='Number of federated learning rounds')
     parser.add_argument('--num-local-epochs', type=int, default=5,
                         help='Number of local epochs')
-    parser.add_argument('--learning-rate', type=float, default=0.01,
+    parser.add_argument('--learning-rate', type=float, default=0.1,
                         help='Base learning rate')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size')
     
-    parser.add_argument('--mu', type=float, default=0.01,
+    parser.add_argument('--mu', type=float, default=0.1,
                         help='Proximal term coefficient for FedProx and FedNova')
     parser.add_argument('--alpha', type=float, default=0.1,
                         help='Alpha parameter for Dirichlet distribution (non-IID)')
     parser.add_argument('--partition-type', type=str, default='near_pathological',
-                        choices=['near_pathological', 'iid', 'single_rare'],
+                        choices=['near_pathological', 'iid', 'single_rare', 'dirichlet'],
                         help='Data partition type')
     parser.add_argument('--weighted-aggregate', type=str, choices=['true', 'false'], default='true',
                         help='Use data-size weights for aggregation')

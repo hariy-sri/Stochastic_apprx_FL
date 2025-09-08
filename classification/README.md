@@ -1,7 +1,6 @@
-# Federated Learning Classification Framework
+# Federated Learning Classification Experiments
 
-A comprehensive federated learning framework for classification tasks, supporting multiple algorithms, datasets.
-
+This folder contains scripts to run and visualize federated learning (FL) experiments for classification task.
 ## Overview
 
 This framework implements various federated learning algorithms for classification tasks, with support for different data partitioning strategies, learning rate schedules, and experimental setups.
@@ -111,13 +110,13 @@ python main.py \
 
 ## Supported Algorithms
 
-### 1. FedAvg (Federated Averaging)
+### 1. FedAvg 
 Standard federated averaging algorithm with weighted parameter aggregation.
 
-### 2. FedProx (Federated Proximal)
+### 2. FedProx 
 Adds a proximal term to handle system heterogeneity, controlled by the `--mu` parameter.
 
-### 3. FedNova (Federated Nova)
+### 3. FedNova 
 Addresses objective inconsistency in federated optimization through normalized averaging.
 
 ### 4. Stochastic FL
@@ -143,10 +142,10 @@ Proposed stochastic federated learning with tapering and heterogeneous learning 
 ## Experiment Types
 
 ### 1. Same Step Size (`same_step_size`)
-Standard federated learning setup where all clients use the same learning rate schedule. Suitable for comparing different algorithms under identical conditions.
+Standard federated learning setup where all clients use the same learning rate schedule.
 
 ### 2. Single Rare (`single_rare`)
-Specialized setup where one client has access to a rare class while others have the remaining classes. Useful for studying federated learning in imbalanced scenarios.
+Specialized setup where one client has access to a rare class while others have the remaining classes. 
 
 ## Visualization and Analysis
 
