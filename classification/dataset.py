@@ -301,35 +301,20 @@ def create_single_rare_partition(dataset, num_clients: int, seed: int = 42):
 def create_dirichlet_partition(dataset, num_clients: int, alpha: float = 0.1, seed: int = 42):
     """
     Create Dirichlet partition for non-IID federated learning.
-    
-    Args:
-        dataset: The dataset to partition
-        num_clients: Number of clients
-        alpha: Dirichlet concentration parameter. Lower values create more heterogeneous distributions.
-               - alpha < 1.0: Highly heterogeneous (each client has few classes)
-               - alpha = 1.0: Moderately heterogeneous
-               - alpha > 1.0: More homogeneous (approaching IID as alpha increases)
-        seed: Random seed for reproducibility
-    
-    Returns:
-        List of client indices for each client
     """
     np.random.seed(seed)
     torch.manual_seed(seed)
     
-    # Extract labels from dataset
     labels = np.array([dataset[i][1] for i in range(len(dataset))])
     labels = np.array([int(label.item()) if hasattr(label, 'item') else int(label) for label in labels])
     
     num_classes = len(np.unique(labels))
     total_samples = len(labels)
     
-    # Create class-to-indices mapping
     class_to_indices = {cls: [] for cls in range(num_classes)}
     for idx, label in enumerate(labels):
         class_to_indices[label].append(idx)
     
-    # Shuffle indices within each class
     for cls in range(num_classes):
         np.random.shuffle(class_to_indices[cls])
     
@@ -350,15 +335,12 @@ def create_dirichlet_partition(dataset, num_clients: int, alpha: float = 0.1, se
         # Convert proportions to actual sample counts
         sample_counts = np.round(proportions * class_size).astype(int)
         
-        # Adjust for rounding errors to ensure all samples are distributed
         diff = class_size - np.sum(sample_counts)
         if diff > 0:
-            # Add remaining samples to random clients
             for _ in range(diff):
                 client_idx = np.random.randint(num_clients)
                 sample_counts[client_idx] += 1
         elif diff < 0:
-            # Remove excess samples from random clients
             for _ in range(-diff):
                 # Find clients with at least one sample to remove from
                 valid_clients = np.where(sample_counts > 0)[0]
@@ -366,7 +348,6 @@ def create_dirichlet_partition(dataset, num_clients: int, alpha: float = 0.1, se
                     client_idx = np.random.choice(valid_clients)
                     sample_counts[client_idx] -= 1
         
-        # Distribute samples to clients
         start_idx = 0
         for client_id in range(num_clients):
             num_samples = sample_counts[client_id]
@@ -375,7 +356,6 @@ def create_dirichlet_partition(dataset, num_clients: int, alpha: float = 0.1, se
                 client_indices[client_id].extend(class_indices[start_idx:end_idx])
                 start_idx = end_idx
     
-    # Shuffle indices for each client to avoid any ordering bias
     for client_id in range(num_clients):
         np.random.shuffle(client_indices[client_id])
     
